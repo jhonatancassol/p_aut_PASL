@@ -1,0 +1,294 @@
+/*
+|---------------------------------------------------------------------------------------------|
+UNIVERSIDADE FEDERAL DE SANTA MARIA - UFSM
+COLEGIO TECNICO INDUSTRIAL DE SANTA MARIA - CTISM
+CURSO TÉCNICO EM ELETROTÉCNICA INTEGRADO AO ENSINO MÉDIO
+AUTOMAÇÃO INDUSTRIAL E CIRCUITOS DIGITAIS E CLP
+PROJETO DE CONTROLE AUTOMATICO DE LUMINOSIDADE ATRAVES DO ACIONAMENTO SEQUENCIAL DE LAMPADAS
+|---------------------------------------------------------------------------------------------|
+Um projeto do Prof. Eng. GLEISSON BALEN
+         E da Prof. Eng. LEYLA KRAULICH
+com os Eletrotecnicos: ALVARO LUIZ CARLOTO
+                       JHONATAN ANTONIO CASSOL
+                       MALU MOSCARDIN VALIN DA SILVA
+                       NATAN ANVERSA VENTURINI
+|---------------------------------------------------------------------------------------------|                       
+SANTA MARIA, DEZEMBRO DE 2015
+|---------------------------------------------------------------------------------------------|
+*/
+
+// declaração de entradas
+  //sensores de luminosidade
+    const int LDR_1 = A0; //Sensor LDR 1
+    const int LDR_2 = A1; //Sensor LDR 2
+    const int LDR_3 = A2; //Sensor LDR 3
+  //sensor de presença
+    const int SP_F = 9; //Sensor de Presenca da fresa
+    const int SP_T = 10; //Sensor de Presenca do torno
+    const int SP_S = 11; //Sensor de Presenca da soldda
+    const int SP_P = 12; //Sensor de Presenca da prensa
+  //fotocélula
+    const int PHC = 13; //Fotocelula exterior
+    
+// declaração de saidas
+  //fresa
+    const int FRESA_1_3 = 22; //acionamento das lampadas 1 e 3 da fresa
+    const int FRESA_2_4 = 23; //acionamento das lampadas 2 e 4 da fresa
+  //torno
+    const int TORNO_1_3 = 24; //acionamento das lampadas 1 e 3 do torno
+    const int TORNO_2_4 = 25; //acionamento das lampadas 2 e 4 do torno
+  //solda
+    const int SOLDA_1_3 = 26; //acionamento das lampadas 1 e 3 da solda
+    const int SOLDA_2_4 = 27; //aiconamento das lampadas 2 e 4 da solda
+  //prensa
+    const int PRENSA_1_3 = 28; //aiconamento das lampadas 1 e 3 da prensa
+    const int PRENSA_2_4 = 29; //aiconamento das lampadas 2 e 4 da prensa
+
+//sistema de controle
+  //RTC
+    int tempo = 0;
+  //Sensores
+    int LCV = 0; //valor de correcao de luminosidade
+    int FLV = 0; //valor final de cuminosidade 
+
+void setup() {
+  //Inicia a serial
+    Serial.begin (9600);
+  //Declaracao das entradas
+    //sensores LDR
+      pinMode (LDR_1, INPUT);
+      pinMode (LDR_2, INPUT);
+      pinMode (LDR_3, INPUT);
+    //sensores de presenca
+      pinMode (SP_F, INPUT);
+      pinMode (SP_T, INPUT);
+      pinMode (SP_S, INPUT);
+      pinMode (SP_P, INPUT);
+    //fotocelula
+      pinMode (PHC, INPUT);
+      
+  //Declaracao de saidas
+    //fresa
+      pinMode (FRESA_1_3, OUTPUT);
+      pinMode (FRESA_2_4, OUTPUT);
+    //torno
+      pinMode (TORNO_1_3, OUTPUT);
+      pinMode (TORNO_2_4, OUTPUT);
+    //solda
+      pinMode (SOLDA_1_3, OUTPUT);
+      pinMode (SOLDA_2_4, OUTPUT);
+    //prensa
+      pinMode (PRENSA_1_3, OUTPUT);
+      pinMode (PRENSA_2_4, OUTPUT);
+}
+
+void loop() 
+{
+//Leitura e comparacao dos valores de luminosidade
+  //LDR_1 sendo o maior de todos
+    if(LDR_1 > LDR_2 && LDR_1 > LDR_3)
+    {
+      if(LDR_2 > LDR_3)
+      {
+        LCV = ( ( (LDR_2 + LDR_3) / 2) + (LDR_2 - LDR_3) );
+        FLV = ( ( (LDR_1 + LDR_2 + LDR_3) / 3) + LCV );
+      }
+      if(LDR_3 > LDR_2)
+      {
+        LCV = ( ( (LDR_2 + LDR_3) / 2) + (LDR_3 - LDR_2) );
+        FLV = ( ( (LDR_1 + LDR_2 + LDR_3) / 3) + LCV );
+      }
+    }
+  //LDR_2 sendo o maior de todos
+    if(LDR_2 > LDR_1 && LDR_2 > LDR_3)
+    {
+      if(LDR_1 > LDR_3)
+      {
+        LCV = ( ( (LDR_1 + LDR_3) / 2) + (LDR_1 - LDR_3) );
+        FLV = ( ( (LDR_1 + LDR_2 + LDR_3) / 3) + LCV );
+      }
+      if(LDR_3 > LDR_1)
+      {
+        LCV = ( ( (LDR_1 + LDR_3) / 2) + (LDR_3 - LDR_1) );
+        FLV = ( ( (LDR_1 + LDR_2 + LDR_3) / 3) + LCV );
+      }
+    }
+  //LDR_3 sendo o maior de todos
+    if(LDR_3 > LDR_2 && LDR_3 > LDR_1)
+    {
+      if(LDR_2 > LDR_1)
+      {
+        LCV = ( ( (LDR_2 + LDR_1) / 2) + (LDR_2 - LDR_1) );
+        FLV = ( ( (LDR_1 + LDR_2 + LDR_3) / 3) + LCV );
+      }
+      if(LDR_1 > LDR_2)
+      {
+        LCV = ( ( (LDR_2 + LDR_1) / 2) + (LDR_1 - LDR_2) );
+        FLV = ( ( (LDR_1 + LDR_2 + LDR_3) / 3) + LCV );
+      }
+    }
+  //LDR_2 > LDR_1 > LDR_3
+    if(LDR_2 > LDR_1 && LDR_1 > LDR_3)
+    {
+      LCV = ( ( ( ( (LDR_2 - LDR_3) + (LDR_1 - LDR_3) ) / 2) + (LDR_2 - LDR_1) ) / 2);
+      FLV = ( ( (LDR_1 + LDR_2 + LDR_3) / 3) + LCV );
+    }
+  //LDR_3 > LDR_1 > LDR_2
+    if(LDR_3 > LDR_1 && LDR_1 > LDR_2)
+    {
+      LCV = ( ( ( ( (LDR_3 - LDR_2) + (LDR_1 - LDR_2) ) / 2) + (LDR_3 - LDR_1) ) / 2);
+      FLV = ( ( (LDR_1 + LDR_2 + LDR_3) / 3) + LCV );
+    }
+  //LDR_1 > LDR_2 > LDR_3
+    if(LDR_1 > LDR_2 && LDR_2 > LDR_3)
+    {
+      LCV = ( ( ( ( (LDR_1 - LDR_3) + (LDR_2 - LDR_3) ) / 2) + (LDR_1 - LDR_2) ) / 2);
+      FLV = ( ( (LDR_1 + LDR_2 + LDR_3) / 3) + LCV );
+    }
+  //LDR_3 > LDR_2 > LDR_1
+    if(LDR_3 > LDR_2 && LDR_2 > LDR_1)
+    {
+      LCV = ( ( ( ( (LDR_3 - LDR_1) + (LDR_2 - LDR_1) ) / 2) + (LDR_3 - LDR_2) ) / 2);
+      FLV = ( ( (LDR_1 + LDR_2 + LDR_3) / 3) + LCV );
+    }
+  //LDR_1 > LDR_3 > LDR_2
+    if(LDR_1 > LDR_2 && LDR_3 > LDR_2)
+    {
+      LCV = ( ( ( ( (LDR_1 - LDR_2) + (LDR_3 - LDR_2) ) / 2) + (LDR_1 - LDR_3) ) / 2);
+      FLV = ( ( (LDR_1 + LDR_2 + LDR_3) / 3) + LCV );
+    }
+  //LDR_2 > LDR_3 > LDR_1
+    if(LDR_2 > LDR_1 && LDR_3 > LDR_1)
+    {
+      LCV = ( ( ( ( (LDR_2 - LDR_1) + (LDR_3 - LDR_1) ) / 2) + (LDR_2 - LDR_3) ) / 2);
+      FLV = ( ( (LDR_1 + LDR_2 + LDR_3) / 3) + LCV );
+    }
+//Identificação dos valores de LCV e FLV
+Serial.print ("LCV = ");
+Serial.println (LCV);
+Serial.print ("FLV = ");
+Serial.println (FLV);
+//Identificação dos valores dos Sensores de Presença
+Serial.print ("SP_F");
+Serial.println (SP_F);
+Serial.print ("SP_T");
+Serial.println (SP_T);
+Serial.print ("SP_S");
+Serial.println (SP_S);
+Serial.print ("SP_P");
+Serial.println (SP_P);
+//Identificação do valor da Fotocélula
+Serial.print ("PHC");
+Serial.print (PHC);
+//Acionamento das saídas
+  if(PHC == LOW)
+  {
+    FRESA_1_3 == HIGH;
+    FRESA_2_4 == HIGH;
+    TORNO_1_3 == HIGH;
+    TORNO_2_4 == HIGH;
+    SOLDA_1_3 == HIGH;
+    SOLDA_2_4 == HIGH;
+    PRENSA_1_3 == HIGH;
+    PRENSA_2_4 == HIGH;
+  }
+  if(PHC == HIGH)
+  {
+    //Acionamento das lâmpadas da FRESA
+    if(SP_F == HIGH)
+    {
+      if(FLV <= 250)
+      {
+        FRESA_1_3 == HIGH;
+        FRESA_2_4 == HIGH;
+    }
+      if(FLV <= 750 && FLV > 250)
+      {
+        FRESA_1_3 == HIGH;
+        FRESA_2_4 == LOW;
+      }
+      if(FLV > 750)
+      {
+        FRESA_1_3 == LOW;
+        FRESA_2_4 == LOW;
+      }
+      else 
+      {
+        FRESA_1_3 == LOW;
+        FRESA_2_4 == LOW;
+      }
+    }
+    //Acionamento das lâmpadas do TORNO
+    if(SP_T == HIGH)
+    {
+      if(FLV <= 250)
+      {
+        TORNO_1_3 == HIGH;
+        TORNO_2_4 == HIGH;
+      }
+      if(FLV <= 750 && FLV > 250)
+      {
+        TORNO_1_3 == HIGH;
+        TORNO_2_4 == LOW;
+      }
+      if(FLV > 750)
+      {
+        TORNO_1_3 == LOW;
+        TORNO_2_4 == LOW;
+      }
+      else 
+      {
+        TORNO_1_3 == LOW;
+        TORNO_2_4 == LOW;
+      }
+    }
+    //Acionamento das lâmpadas da SOLDA
+    if(SP_S == HIGH)
+    {
+      if(FLV <= 250)
+      {
+        SOLDA_1_3 == HIGH;
+        SOLDA_2_4 == HIGH;
+      }
+      if(FLV <= 750 && FLV > 250)
+      {
+        SOLDA_1_3 == HIGH;
+        SOLDA_2_4 == LOW;
+      }
+      if(FLV > 750)
+      {
+        SOLDA_1_3 == LOW;
+        SOLDA_2_4 == LOW;
+      }
+      else 
+      {
+        SOLDA_1_3 == LOW;
+        SOLDA_2_4 == LOW;
+      }
+    }
+    //Acionamento das lâmpadas da PRENSA
+    if(SP_P == HIGH)
+    {
+      if(FLV <= 250)
+      {
+        PRENSA_1_3 == HIGH;
+        PRENSA_2_4 == HIGH;
+      }
+      if(FLV <= 750 && FLV > 250)
+      {
+        PRENSA_1_3 == HIGH;
+        PRENSA_2_4 == LOW;
+      }
+      if(FLV > 750)
+      {
+        PRENSA_1_3 == LOW;
+        PRENSA_2_4 == LOW;
+      }
+      else 
+      {
+        PRENSA_1_3 == LOW;
+        PRENSA_2_4 == LOW;
+      }
+    }  
+  }
+}
